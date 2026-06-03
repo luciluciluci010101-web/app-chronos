@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Chronos - Atlante Globale</title>
     
-    <!-- Libreria Mappa Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- 🔗 COLLEGAMENTO AI CASSETTI DEI DATI SEPARATI -->
     <script src="citta.js"></script>
     <script src="guerre.js"></script>
     <script src="disastri.js"></script>
@@ -50,46 +48,45 @@
         #pannello-info h2 { color: #d4af37; margin: 0 0 5px 0; font-size: 18px; }
         #pannello-info p { margin: 0; font-size: 14px; color: #ccc; }
         
-        /* LINEA DEL TEMPO CON CONTROLLI DI PRECISIONE */
+        /* 📱 TIMELINE ULTRA-COMPATTA ED ELEGANTE */
         #timeline-container {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000;
-            background: rgba(15, 15, 15, 0.85); padding: 16px 20px; border-radius: 16px;
-            width: 85%; max-width: 440px; text-align: center; border: 1px solid rgba(212, 175, 55, 0.35);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 1000;
+            background: rgba(15, 15, 15, 0.85); padding: 10px 16px; border-radius: 12px;
+            width: 80%; max-width: 320px; text-align: center; border: 1px solid rgba(212, 175, 55, 0.3);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
         }
         
-        #timeline-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: #888; margin-bottom: 5px; }
+        .controllo-superiore { display: flex; align-items: center; justify-content: center; gap: 8px; }
         
-        /* Plancia dei pulsanti temporali */
-        .plancia-tempo { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 5px; }
-        
-        #anno-display { 
-            font-size: 24px; font-weight: bold; color: #d4af37; min-width: 140px; display: inline-block;
-            text-shadow: 0 0 12px rgba(212, 175, 55, 0.4); font-family: 'Georgia', serif; 
+        /* Input dell'anno invisibile come box, stile testo dorato cliccabile */
+        #anno-input { 
+            font-size: 20px; font-weight: bold; color: #d4af37; background: transparent;
+            border: none; outline: none; text-align: center; width: 130px;
+            text-shadow: 0 0 8px rgba(212, 175, 55, 0.3); font-family: 'Georgia', serif;
+            cursor: pointer; padding: 2px; border-bottom: 1px dashed rgba(212, 175, 55, 0.3);
         }
+        #anno-input:focus { border-bottom: 1px solid #d4af37; background: rgba(212, 175, 55, 0.05); }
         
-        /* Pulsanti di regolazione micro e macro */
-        .btn-regola {
-            background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.4);
-            color: #d4af37; border-radius: 8px; width: 36px; height: 32px; font-size: 12px;
-            font-weight: bold; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center;
+        /* Micro freccette eleganti */
+        .micro-freccia {
+            background: transparent; border: none; color: rgba(212, 175, 55, 0.7);
+            font-size: 16px; cursor: pointer; padding: 0 8px; transition: color 0.2s;
+            display: flex; align-items: center; justify-content: center;
         }
-        .btn-regola:active { background: #d4af37; color: #000; transform: scale(0.95); }
+        .micro-freccia:active { color: #ffffff; }
         
         #timeline {
-            -webkit-appearance: none; appearance: none; width: 100%; height: 5px; 
-            background: rgba(212, 175, 55, 0.2); border-radius: 5px; outline: none; margin-top: 10px;
+            -webkit-appearance: none; appearance: none; width: 100%; height: 4px; 
+            background: rgba(212, 175, 55, 0.15); border-radius: 5px; outline: none; margin-top: 10px;
         }
         #timeline::-webkit-slider-thumb {
-            -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%;
-            background: #d4af37; cursor: pointer; box-shadow: 0 0 10px rgba(212, 175, 55, 0.8); border: 2px solid #0f0f0f; transition: transform 0.1s ease;
+            -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%;
+            background: #d4af37; cursor: pointer; box-shadow: 0 0 8px rgba(212, 175, 55, 0.7); border: 2px solid #0f0f0f;
         }
-        #timeline::-webkit-slider-thumb:hover, #timeline::-webkit-slider-thumb:active { transform: scale(1.25); }
         #timeline::-moz-range-thumb {
-            width: 16px; height: 16px; border-radius: 50%; background: #d4af37; cursor: pointer;
-            box-shadow: 0 0 10px rgba(212, 175, 55, 0.8); border: 2px solid #0f0f0f; transition: transform 0.1s ease;
+            width: 14px; height: 14px; border-radius: 50%; background: #d4af37; cursor: pointer;
+            box-shadow: 0 0 8px rgba(212, 175, 55, 0.7); border: 2px solid #0f0f0f;
         }
-        #timeline::-moz-range-thumb:hover, #timeline::-moz-range-thumb:active { transform: scale(1.25); }
     </style>
 </head>
 <body>
@@ -108,15 +105,11 @@
         <p id="info-testo">Dettagli...</p>
     </div>
 
-    <!-- 📦 NUOVA PLANCIA CON PULSANTI DI NAVIGAZIONE MILLESIMALE -->
     <div id="timeline-container">
-        <div id="timeline-label">EPOCA</div>
-        <div class="plancia-tempo">
-            <button class="btn-regola" onclick="regolaTempo(-100)">-100</button>
-            <button class="btn-regola" onclick="regolaTempo(-1)">◀</button>
-            <span id="anno-display">3000 a.C.</span>
-            <button class="btn-regola" onclick="regolaTempo(1)">▶</button>
-            <button class="btn-regola" onclick="confermaTempo(100)">+100</button>
+        <div class="controllo-superiore">
+            <button class="micro-freccia" onclick="regolaTempo(-1)">◀</button>
+            <input type="text" id="anno-input" value="3000 a.C.">
+            <button class="micro-freccia" onclick="regolaTempo(1)">▶</button>
         </div>
         <input type="range" id="timeline" min="-3000" max="2026" value="-3000" step="1">
     </div>
@@ -126,6 +119,7 @@
         var markerAttivi = [];
         var categoriaAttiva = 'tutto';
         var eventiStorici = [];
+        var annoAttuale Globale = -3000;
 
         function initMap() {
             var datiCitta = typeof listaCitta !== 'undefined' ? listaCitta : [];
@@ -142,45 +136,70 @@
 
             setTimeout(function() { map.invalidateSize(true); }, 200);
 
-            // Sincronizza lo spostamento manuale dello slider
+            // Sincronizza lo spostamento manuale dello slider barra
             document.getElementById('timeline').addEventListener('input', function() {
-                impostaAnno(parseInt(this.value));
+                impostaAnno(parseInt(this.value), false);
             });
 
-            // Avviamo l'applicazione direttamente dal 3000 a.C.
-            impostaAnno(-3000);
+            // Gestisce la digitazione manuale dell'anno da tastiera
+            var inputAnno = document.getElementById('anno-input');
+            
+            // Quando si clicca sul testo, seleziona tutto il testo per cancellarlo subito
+            inputAnno.addEventListener('focus', function() {
+                this.value = annoAttualeGlobale; 
+                this.select();
+            });
+
+            // Quando si preme Invio o si clicca fuori dall'input, elabora il testo scritto
+            inputAnno.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    this.blur();
+                }
+            });
+
+            inputAnno.addEventListener('blur', function() {
+                var testo = this.value.trim().toLowerCase();
+                var numero = parseInt(testo);
+
+                if (isNaN(numero)) {
+                    impostaAnno(annoAttualeGlobale, true); // Se scrive fesserie ripristina il vecchio
+                    return;
+                }
+
+                // Se l'utente scrive esplicitamente "ac" o "a.c.", trasforma il numero in negativo
+                if ((testo.includes('ac') || testo.includes('a.c.')) && numero > 0) {
+                    numero = -numero;
+                }
+
+                impostaAnno(numero, true);
+            });
+
+            impostaAnno(-3000, true);
         }
 
         window.addEventListener('DOMContentLoaded', initMap);
 
-        // 🧠 FUNZIONE CENTRALE PER GESTIRE L'ANNO (Unifica slider e pulsanti)
-        function impostaAnno(val) {
+        function impostaAnno(val, aggiornaTestoInput) {
             if (val < -3000) val = -3000;
             if (val > 2026) val = 2026;
 
-            // Sincronizza graficamente la posizione della levetta
+            annoAttualeGlobale = val;
             document.getElementById('timeline').value = val;
 
-            // Aggiorna il testo dell'anno a schermo
-            if (val < 0) {
-                document.getElementById('anno-display').innerText = Math.abs(val) + " a.C.";
-            } else {
-                document.getElementById('anno-display').innerText = val + " d.C.";
+            // Aggiorna la scritta visibile
+            if (aggiornaTestoInput || document.activeElement !== document.getElementById('anno-input')) {
+                if (val < 0) {
+                    document.getElementById('anno-input').value = Math.abs(val) + " a.C.";
+                } else {
+                    document.getElementById('anno-input').value = val + " d.C.";
+                }
             }
 
-            // Disegna i punti storici sulla mappa
             aggiornaElementi(val);
         }
 
-        // Funzione attivata dai pulsanti d'oro per fare +1, -1, +100 o -100
         function regolaTempo(delta) {
-            var annoCorrente = parseInt(document.getElementById('timeline').value);
-            impostaAnno(annoCorrente + delta);
-        }
-        
-        // Correzione per il pulsante +100
-        function confermaTempo(delta) {
-            regolaTempo(delta);
+            impostaAnno(annoAttualeGlobale + delta, true);
         }
 
         function mostraDettagli(ev) {
@@ -193,7 +212,7 @@
             categoriaAttiva = categoria;
             document.querySelectorAll('.btn-filtro').forEach(btn => btn.classList.remove('active'));
             document.getElementById('btn-' + categoria).classList.add('active');
-            aggiornaElementi(parseInt(document.getElementById('timeline').value));
+            aggiornaElementi(annoAttualeGlobale);
         }
 
         function aggiornaElementi(annoSelezionato) {
