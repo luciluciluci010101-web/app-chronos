@@ -33,7 +33,7 @@ var listaCitta = [
         tipo: "citta",
         anno: -3000,
         coordinate: [-10.8931, -77.5203],
-        testo: "Situata nella Valle di Supe in Perù, è la città più antica del continent americano. Sviluppa una complessa architettura monumentale con piramidi di pietra e piazze cerimoniali senza l'uso della ceramica."
+        testo: "Situata nella Valle di Supe in Perù, è la città più antica del continente americano. Sviluppa una complessa architettura monumentale con piramidi di pietra e piazze cerimoniali senza l'uso della ceramica."
     },
     {
         nome: "Tebe Imperiale",
