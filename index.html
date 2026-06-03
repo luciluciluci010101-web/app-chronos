@@ -122,4 +122,136 @@
             <input type="text" id="anno-input" value="3000 a.C.">
             <button class="micro-freccia" onclick="regolaTempo(1)">▶</button>
         </div>
-        <input type="range" id="timeline" min="-3000"
+        <input type="range" id="timeline" min="-3000" max="2026" value="-3000" step="1">
+    </div>
+
+    <script>
+        var map;
+        var markerAttivi = [];
+        var categoriaAttiva = 'tutto';
+        var eventiStorici = [];
+        var annoAttualeGlobale = -3000;
+
+        function initMap() {
+            var datiCitta = typeof listaCitta !== 'undefined' ? listaCitta : [];
+            var datiGuerre = typeof listaGuerre !== 'undefined' ? listaGuerre : [];
+            var datiDisastri = typeof listaDisastri !== 'undefined' ? listaDisastri : [];
+
+            eventiStorici = [].concat(datiCitta, datiGuerre, datiDisastri);
+
+            map = L.map('map', { zoomControl: false, fadeAnimation: false }).setView([35, 25], 3);
+            
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Esri'
+            }).addTo(map);
+
+            setTimeout(function() { map.invalidateSize(true); }, 200);
+
+            document.getElementById('timeline').addEventListener('input', function() {
+                impostaAnno(parseInt(this.value), false);
+            });
+
+            var inputAnno = document.getElementById('anno-input');
+            
+            inputAnno.addEventListener('focus', function() {
+                this.value = annoAttualeGlobale; 
+                this.select();
+            });
+
+            inputAnno.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    this.blur();
+                }
+            });
+
+            inputAnno.addEventListener('blur', function() {
+                var testo = this.value.trim().toLowerCase();
+                var numero = parseInt(testo);
+
+                if (isNaN(numero)) {
+                    impostaAnno(annoAttualeGlobale, true);
+                    return;
+                }
+
+                if ((testo.includes('ac') || testo.includes('a.c.')) && numero > 0) {
+                    numero = -numero;
+                }
+
+                impostaAnno(numero, true);
+            });
+
+            impostaAnno(-3000, true);
+        }
+
+        window.addEventListener('DOMContentLoaded', initMap);
+
+        function impostaAnno(val, aggiornaTestoInput) {
+            if (val < -3000) val = -3000;
+            if (val > 2026) val = 2026;
+
+            annoAttualeGlobale = val;
+            document.getElementById('timeline').value = val;
+
+            if (aggiornaTestoInput || document.activeElement !== document.getElementById('anno-input')) {
+                if (val < 0) {
+                    document.getElementById('anno-input').value = Math.abs(val) + " a.C.";
+                } else {
+                    document.getElementById('anno-input').value = val + " d.C.";
+                }
+            }
+
+            aggiornaElementi(val);
+        }
+
+        function regolaTempo(delta) {
+            impostaAnno(annoAttualeGlobale + delta, true);
+        }
+
+        function mostraDettagli(ev) {
+            document.getElementById('info-titolo').innerText = ev.nome;
+            document.getElementById('info-testo').innerText = ev.testo;
+            document.getElementById('pannello-info').style.display = 'block';
+        }
+
+        function filtra(categoria) {
+            categoriaAttiva = categoria;
+            document.querySelectorAll('.btn-filtro').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-' + categoria).classList.add('active');
+            aggiornaElementi(annoAttualeGlobale);
+        }
+
+        function aggiornaElementi(annoSelezionato) {
+            markerAttivi.forEach(m => map.removeLayer(m));
+            markerAttivi = [];
+
+            eventiStorici.forEach(ev => {
+                var annoValido = Math.abs(annoSelezionato - ev.anno) <= 150;
+                var categoriaValida = (categoriaAttiva === 'tutto' || categoriaAttiva === ev.tipo);
+
+                if (annoValido && categoriaValida) {
+                    var emojiScelta = '🏛️';
+                    var classeAggiuntiva = '';
+
+                    // ⚔️ Se l'evento è una guerra, applichiamo la classe animata!
+                    if (ev.tipo === 'guerra') {
+                        emojiScelta = '⚔️';
+                        classeAggiuntiva = ' animazione-spada';
+                    }
+                    if (ev.tipo === 'natura') emojiScelta = '🌋';
+
+                    var iconaEmoji = L.divIcon({
+                        html: '<div class="emoji-marker' + classeAggiuntiva + '">' + emojiScelta + '</div>',
+                        className: 'leaflet-data-marker',
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 15]
+                    });
+
+                    var marker = L.marker(ev.coordinate, { icon: iconaEmoji }).addTo(map);
+                    marker.on('click', function() { mostraDettagli(ev); });
+                    markerAttivi.push(marker);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
