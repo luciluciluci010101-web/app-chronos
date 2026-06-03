@@ -8,10 +8,13 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+    <!-- Script dei database dati -->
     <script src="citta.js"></script>
     <script src="guerre.js"></script>
     <script src="disastri.js"></script>
-    <script src="confini.js"></script> <style>
+    <script src="confini.js"></script>
+
+    <style>
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #050505; font-family: sans-serif; overflow: hidden; }
         
         #map { position: fixed !important; top: 0; bottom: 0; left: 0; right: 0; height: 100vh !important; width: 100vw !important; z-index: 1; }
@@ -36,7 +39,7 @@
 
         /* ⚔️ ANIMAZIONE DELLE SPADE FORZATA */
         .animazione-spada {
-            display: inline-block !important; /* Forzato per evitare blocchi */
+            display: inline-block !important; 
             animation: scontroSpade 0.8s ease-in-out infinite alternate !important;
             transform-origin: center center;
             will-change: transform;
@@ -131,7 +134,7 @@
 
     <script>
         var map, markerAttivi = [], categoriaAttiva = 'tutto', eventiStorici = [], annoAttualeGlobale = -3000;
-        var layerConfiniAttuali = null; // Memorizza i confini per poterli aggiornare
+        var layerConfiniAttuali = null; 
 
         function initMap() {
             var datiCitta = typeof listaCitta !== 'undefined' ? listaCitta : [];
@@ -202,7 +205,7 @@
             }
 
             aggiornaElementi(val);
-            disegnaConfini(val); // Richiama il motore dei confini reali
+            disegnaConfini(val); 
         }
 
         function regolaTempo(delta) {
@@ -222,33 +225,31 @@
             aggiornaElementi(annoAttualeGlobale);
         }
 
-        // --- MOTORE CONFINI REALI (GeoJSON) ---
+        // --- MOTORE CONFINI GEOGRAFICI AVANZATI ---
         function disegnaConfini(anno) {
-            // 1. Pulisce la mappa dai confini dell'anno precedente
             if (layerConfiniAttuali) {
                 map.removeLayer(layerConfiniAttuali);
             }
 
-            // Se il file non è stato caricato, si ferma qui
             if (typeof listaConfini === 'undefined') return;
 
-            // 2. Trova quali imperi esistono in questo preciso anno
+            // Filtra i territori attivi per l'anno corrente
             var confiniAttivi = listaConfini.filter(c => anno >= c.annoInizio && anno <= c.annoFine);
 
-            // 3. Disegna sulla mappa
             if (confiniAttivi.length > 0) {
                 var layerGroup = []; 
 
                 confiniAttivi.forEach(c => {
                     var territorio = L.geoJSON(c.geoData, {
                         style: {
-                            color: c.colore,       // Colore del bordo
-                            weight: 2,             // Spessore del bordo
-                            fillColor: c.colore,   // Colore interno
-                            fillOpacity: 0.3       // Trasparenza per vedere la mappa
+                            color: c.colore,       // Colore della linea costiera
+                            weight: 1,             // Spessore leggero anti-frastagliamento
+                            smoothFactor: 1.5,     // Arrotonda e ripulisce le imperfezioni dei vettori
+                            lineJoin: 'round',     // Angoli smussati sui punti di giunzione geografica
+                            fillColor: c.colore,   
+                            fillOpacity: 0.35      // Trasparenza bilanciata per vedere i rilievi geografici sotto
                         },
                         onEachFeature: function (feature, layer) {
-                            // Rende l'area cliccabile
                             layer.on('click', function() {
                                 document.getElementById('info-titolo').innerText = c.nome;
                                 document.getElementById('info-testo').innerText = feature.properties.descrizione;
@@ -259,7 +260,6 @@
                     layerGroup.push(territorio);
                 });
 
-                // Aggiunge tutti i confini attivi alla mappa in un colpo solo
                 layerConfiniAttuali = L.featureGroup(layerGroup).addTo(map);
             }
         }
