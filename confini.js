@@ -1,28 +1,47 @@
-// DATABASE DEI CONFINI ESATTI (GeoJSON semplificato)
+// DATABASE DEI CONFINI: METODO "PUZZLE"
+var coloreRoma = "#cc0000"; // Rosso impero
+
 var listaConfini = [
     {
-        nome: "Repubblica/Impero Romano (Test)",
-        colore: "#cc0000", // Rosso 
-        annoInizio: -500,  // Appare nel 500 a.C.
-        annoFine: 476,     // Scompare nel 476 d.C.
+        nome: "Repubblica Romana (Fase Iniziale)",
+        colore: coloreRoma,
+        annoInizio: -500, // Appare dal 500 a.C.
+        annoFine: 476,
         geoData: {
             "type": "Feature",
             "geometry": {
                 "type": "Polygon",
-                // Le coordinate sono invertite rispetto ai marker: prima Longitudine, poi Latitudine!
-                "coordinates": [[
-                    [7.5, 45.0],   // Nord-Ovest (Piemonte)
-                    [13.5, 46.0],  // Nord-Est (Friuli)
-                    [18.5, 40.0],  // Tacco (Puglia)
-                    [16.0, 38.0],  // Punta (Calabria)
-                    [12.0, 37.5],  // Sicilia ovest
-                    [11.5, 42.0],  // Costa ovest (Toscana)
-                    [7.5, 45.0]    // Ritorno al punto di partenza per chiudere il recinto
-                ]]
+                "coordinates": [[[11.0, 42.5], [14.0, 42.5], [14.0, 41.0], [11.0, 41.0], [11.0, 42.5]]]
             },
-            "properties": {
-                "descrizione": "Questo è un confine reale tracciato punto per punto. Visibile dal 500 a.C. al 476 d.C."
-            }
+            "properties": { "descrizione": "Il nucleo centrale di Roma e del Lazio." }
+        }
+    },
+    {
+        nome: "Conquista del Sud (Magna Grecia)",
+        colore: coloreRoma,
+        annoInizio: -270, // Appare nel 270 a.C. (dopo le guerre pirriche)
+        annoFine: 476,
+        geoData: {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[[14.0, 41.0], [18.5, 40.0], [16.0, 38.0], [14.0, 39.5], [14.0, 41.0]]]
+            },
+            "properties": { "descrizione": "Annessione dei territori del sud Italia." }
+        }
+    },
+    {
+        nome: "Conquista del Nord (Gallia Cisalpina)",
+        colore: coloreRoma,
+        annoInizio: -190, // Appare nel 190 a.C.
+        annoFine: 476,
+        geoData: {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[[7.5, 45.0], [13.5, 46.0], [14.0, 42.5], [11.0, 42.5], [7.5, 45.0]]]
+            },
+            "properties": { "descrizione": "Espansione verso il Nord Italia." }
         }
     }
 ];
