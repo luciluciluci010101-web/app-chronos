@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chronos - Atlante Storico</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        /* Stile Generale scuro ed elegante */
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Cinzel', 'Georgia', serif; background: #0b0b0b; color: #e0e0e0; overflow: hidden; }
+        #map { height: 100vh; width: 100%; background: #0b0b0b; }
+        
+        /* I Filtri in alto in stile "Pulsanti Fluttuanti" */
+        #filtri-container {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000;
+            display: flex; gap: 10px; background: rgba(15, 15, 15, 0.85); padding: 10px 20px;
+            border-radius: 30px; border: 1px solid #d4af37; backdrop-filter: blur(5px);
+        }
+        .btn-filtro {
+            background: transparent; border: none; color: #aaa; padding: 8px 16px; cursor: pointer;
+            font-size: 14px; border-radius: 20px; transition: all 0.3s;
+        }
+        .btn-filtro.active, .btn-filtro:hover { color: #d4af37; background: rgba(212, 175, 55, 0.15); box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
+
+        /* Pannello Informativo Laterale Elegante */
+        #pannello-info {
+            position: absolute; top: 20px; right: 20px; width: 320px; max-height: 80vh; z-index: 1000;
+            background: rgba(15, 15, 15, 0.9); border: 1px solid #d4af37; border-radius: 12px;
+            padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); display: none; backdrop-filter: blur(10px);
+            overflow-y: auto;
+        }
+        #pannello-info h2 { color: #d4af37; margin-top: 0; font-size: 22px; border-bottom: 1px solid rgba(212,175,55,0.3); padding-bottom: 10px; }
+        #pannello-info .categoria { font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #aaa; margin-bottom: 10px; display: block; }
+        
+        /* Controllo della Linea del Tempo */
+        #timeline-container {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 1000;
+            background: rgba(15, 15, 15, 0.9); padding: 20px; border-radius: 16px;
+            width: 85%; max-width: 600px; text-align: center; border: 1px solid #d4af37; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        #timeline { width: 100%; accent-color: #d4af37; margin-top: 15px; cursor: pointer; }
+        #anno-display { font-size: 24px; font-weight: bold; color: #d4af37; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <!-- Pulsanti Filtro Categorie -->
+    <div id="filtri-container">
+        <button class="btn-filtro active" onclick="filtra('tutto')">Mostra Tutto</button>
+        <button class="btn-filtro" onclick="filtra('citta')">🏛️ Città</button>
+        <button class="btn-filtro" onclick="filtra('guerra')">⚔️ Guerre</button>
+    </div>
+
+    <!-- Pannello Informativo Laterale -->
+    <div id="pannello-info">
+        <span class="categoria" id="info-cat">Categoria</span>
+        <h2 id="info-titolo">Titolo Evento</h2>
+        <p id="info-testo">Seleziona un punto sulla mappa per leggere i dettagli storici approfonditi.</p>
+    </div>
+
+    <!-- Slider del Tempo -->
+    <div id="timeline-container">
+        <div>ANNO <span id="anno-display">1300 a.C.</span></div>
+        <input type="range" id="timeline" min="-3000" max="-1000" value="-1300" step="50">
+    </div>
+
+    <script>
+        // Inizializzazione della mappa con uno stile Dark elegante
+        var map = L.map('map', { zoomControl: false }).setView([26.8206, 32.8025], 6);
+        
+        // Carichiamo una mappa "nera" priva di scritte moderne
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{y}/{x}.png', {
+            attribution: '&copy; CartoDB'
+        }).addTo(map);
+
+        // Database di esempio con categorie per il filtro
+        var eventiStorici = [
+            {
+                nome: "Battaglia di Kadesh",
+                tipo: "guerra",
+                anno: -1274,
+                coordinate: [34.56, 36.52],
+                testo: "Il più grande scontro di carri della storia antica. Ramses II affronta l'Impero Ittita in una battaglia strategica che porterà al primo trattato di pace internazionale documentato al mondo."
+            },
+            {
+                nome: "Tebe Imperiale",
+                tipo: "citta",
+                anno: -1300,
+                coordinate: [25.6872, 32.6396],
+                testo: "Nel cuore del Nuovo Regno, Tebe diventa una megalopoli splendida. Oro e tributi confluiscono nei templi di Karnak e Luxor, mentre i Re vengono sepolti in segreto nella Valle dei Re."
+            }
+        ];
+
+        var markerAttivi = [];
+
+        function mostraDettagli(evento) {
+            document.getElementById('info-cat').innerText = evento.tipo === 'guerra' ? '⚔️ Campagna Militare' : '🏛️ Centro Urbano';
+            document.getElementById('info-titolo').innerText = evento.nome;
+            document.getElementById('info-testo').innerText = evento.testo;
+            document.getElementById('pannello-info').style.display = 'block';
+        }
+
+        function aggiornaElementi(annoSelezionato) {
+            markerAttivi.forEach(m => map.removeLayer(m));
+            markerAttivi = [];
+
+            eventiStorici.forEach(ev => {
+                // Mostriamo l'evento se siamo vicini al suo anno storico
+                if (Math.abs(annoSelezionato - ev.anno) <= 150) {
+                    // Creiamo un cerchio dorato minimale invece del brutto spillo blu
+                    var marker = L.circleMarker(ev.coordinate, {
+                        radius: 8,
+                        fillColor: ev.tipo === 'guerra' ? '#8B1E0F' : '#d4af37',
+                        color: '#fff',
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }).addTo(map);
+
+                    marker.on('click', function() { mostraDettagli(ev); });
+                    markerAttivi.push(marker);
+                }
+            });
+        }
+
+        // Logica dello Slider
+        var slider = document.getElementById('timeline');
+        var display = document.getElementById('anno-display');
+
+        slider.addEventListener('input', function() {
+            var val = parseInt(this.value);
+            display.innerText = Math.abs(val) + " a.C.";
+            aggiornaElementi(val);
+        });
+
+        // Avvio
+        aggiornaElementi(-1300);
+    </script>
+</body>
+</html>
