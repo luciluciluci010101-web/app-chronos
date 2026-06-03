@@ -5,9 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Chronos - Atlante Globale</title>
     
+    <!-- Libreria Mappa Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+    <!-- 🔗 COLLEGAMENTO AI CASSETTI DEI DATI SEPARATI -->
     <script src="citta.js"></script>
     <script src="guerre.js"></script>
     <script src="disastri.js"></script>
@@ -58,7 +60,6 @@
         
         .controllo-superiore { display: flex; align-items: center; justify-content: center; gap: 8px; }
         
-        /* Input dell'anno invisibile come box, stile testo dorato cliccabile */
         #anno-input { 
             font-size: 20px; font-weight: bold; color: #d4af37; background: transparent;
             border: none; outline: none; text-align: center; width: 130px;
@@ -67,7 +68,6 @@
         }
         #anno-input:focus { border-bottom: 1px solid #d4af37; background: rgba(212, 175, 55, 0.05); }
         
-        /* Micro freccette eleganti */
         .micro-freccia {
             background: transparent; border: none; color: rgba(212, 175, 55, 0.7);
             font-size: 16px; cursor: pointer; padding: 0 8px; transition: color 0.2s;
@@ -119,7 +119,7 @@
         var markerAttivi = [];
         var categoriaAttiva = 'tutto';
         var eventiStorici = [];
-        var annoAttuale Globale = -3000;
+        var annoAttualeGlobale = -3000; // Parola corretta senza spazi!
 
         function initMap() {
             var datiCitta = typeof listaCitta !== 'undefined' ? listaCitta : [];
@@ -136,21 +136,17 @@
 
             setTimeout(function() { map.invalidateSize(true); }, 200);
 
-            // Sincronizza lo spostamento manuale dello slider barra
             document.getElementById('timeline').addEventListener('input', function() {
                 impostaAnno(parseInt(this.value), false);
             });
 
-            // Gestisce la digitazione manuale dell'anno da tastiera
             var inputAnno = document.getElementById('anno-input');
             
-            // Quando si clicca sul testo, seleziona tutto il testo per cancellarlo subito
             inputAnno.addEventListener('focus', function() {
                 this.value = annoAttualeGlobale; 
                 this.select();
             });
 
-            // Quando si preme Invio o si clicca fuori dall'input, elabora il testo scritto
             inputAnno.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     this.blur();
@@ -162,11 +158,10 @@
                 var numero = parseInt(testo);
 
                 if (isNaN(numero)) {
-                    impostaAnno(annoAttualeGlobale, true); // Se scrive fesserie ripristina il vecchio
+                    impostaAnno(annoAttualeGlobale, true);
                     return;
                 }
 
-                // Se l'utente scrive esplicitamente "ac" o "a.c.", trasforma il numero in negativo
                 if ((testo.includes('ac') || testo.includes('a.c.')) && numero > 0) {
                     numero = -numero;
                 }
@@ -186,7 +181,6 @@
             annoAttualeGlobale = val;
             document.getElementById('timeline').value = val;
 
-            // Aggiorna la scritta visibile
             if (aggiornaTestoInput || document.activeElement !== document.getElementById('anno-input')) {
                 if (val < 0) {
                     document.getElementById('anno-input').value = Math.abs(val) + " a.C.";
