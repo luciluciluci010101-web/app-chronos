@@ -2,58 +2,43 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <!-- Questo meta tag impedisce al telefono di fare zoom strani all'avvio -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Chronos - Atlante Storico</title>
+    <title>Chronos Atlas</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #0b0b0b; font-family: Arial, sans-serif; overflow: hidden; }
-        #map { height: 100%; width: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #050505; font-family: sans-serif; overflow: hidden; }
         
-        /* 🛡️ LO SCUDO ANTISTORTO: Blocca qualsiasi tentativo del telefono di deformare la mappa */
-        .leaflet-container img {
-            max-width: none !important;
-            max-height: none !important;
-            box-shadow: none !important;
-        }
-        .leaflet-tile {
-            visibility: inherit !important;
-        }
+        /* 🛡️ BLOCCO ANTI-DISTORSIONE E REGOLE DI POSIZIONAMENTO FORZATE */
+        #map { position: fixed !important; top: 0; bottom: 0; left: 0; right: 0; height: 100vh !important; width: 100vw !important; z-index: 1; }
+        .leaflet-pane { position: absolute !important; left: 0; top: 0; }
+        .leaflet-tile { position: absolute !important; left: 0; top: 0; max-width: none !important; max-height: none !important; user-select: none; }
+        .leaflet-tile-container { position: absolute !important; left: 0; top: 0; pointer-events: none; }
 
-        /* Menu dei Filtri in alto */
+        /* Interfaccia Oro e Nera fluttuante */
         #filtri-container {
             position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1000;
-            display: flex; gap: 8px; background: rgba(15, 15, 15, 0.85); padding: 8px 16px;
-            border-radius: 20px; border: 1px solid #d4af37; backdrop-filter: blur(5px);
+            display: flex; gap: 8px; background: rgba(10, 10, 10, 0.9); padding: 8px 16px;
+            border-radius: 20px; border: 1px solid #d4af37; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
-        .btn-filtro {
-            background: transparent; border: none; color: #aaa; padding: 6px 12px;
-            font-size: 13px; border-radius: 15px; cursor: pointer; transition: all 0.2s;
-        }
-        .btn-filtro.active { color: #d4af37; background: rgba(212, 175, 55, 0.15); }
+        .btn-filtro { background: transparent; border: none; color: #888; padding: 6px 12px; font-size: 13px; border-radius: 15px; cursor: pointer; }
+        .btn-filtro.active { color: #d4af37; background: rgba(212, 175, 55, 0.2); font-weight: bold; }
 
-        /* Pannello Informativo: Adattato sia per PC che per Telefono */
         #pannello-info {
             position: absolute; top: 75px; right: 15px; left: 15px; max-height: 25vh; z-index: 1000;
-            background: rgba(15, 15, 15, 0.90); border: 1px solid #d4af37; border-radius: 10px;
-            padding: 15px; display: none; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            backdrop-filter: blur(10px);
+            background: rgba(10, 10, 10, 0.95); border: 1px solid #d4af37; border-radius: 10px;
+            padding: 15px; display: none; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
         }
-        /* Se lo schermo è grande (PC), si sposta elegantemente a destra */
-        @media (min-width: 600px) {
-            #pannello-info { left: auto; width: 280px; max-height: 60vh; }
-        }
-        #pannello-info h2 { color: #d4af37; margin: 0 0 8px 0; font-size: 18px; }
-        #pannello-info p { margin: 0; font-size: 14px; color: #ccc; line-height: 1.4; }
+        @media (min-width: 600px) { #pannello-info { left: auto; width: 280px; max-height: 50vh; } }
+        #pannello-info h2 { color: #d4af37; margin: 0 0 5px 0; font-size: 18px; }
+        #pannello-info p { margin: 0; font-size: 14px; color: #ccc; }
         
-        /* Linea del Tempo in basso */
         #timeline-container {
-            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 1000;
-            background: rgba(15, 15, 15, 0.9); padding: 15px; border-radius: 12px;
-            width: 85%; max-width: 450px; text-align: center; border: 1px solid #d4af37; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000;
+            background: rgba(10, 10, 10, 0.95); padding: 15px; border-radius: 12px;
+            width: 80%; max-width: 400px; text-align: center; border: 1px solid #d4af37; box-shadow: 0 5px 15px rgba(0,0,0,0.6);
         }
         #timeline { width: 100%; accent-color: #d4af37; margin-top: 8px; }
         #anno-display { font-size: 20px; font-weight: bold; color: #d4af37; }
@@ -101,29 +86,30 @@
             }
         ];
 
-        // Avviamo tutto SOLO quando la pagina è caricata al 100%
-        window.onload = function() {
-            map = L.map('map', { zoomControl: false }).setView([26.8206, 30.8025], 5);
+        // Inizializzazione super-sicura
+        function initMap() {
+            map = L.map('map', { zoomControl: false, fadeAnimation: false }).setView([26.8206, 30.8025], 5);
             
+            // Usiamo una mappa satellitare standard ad altissima compatibilità
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 attribution: 'Esri'
             }).addTo(map);
 
-            // Forza il raddrizzamento immediato delle tessere della mappa
+            // Forza il raddrizzamento dei blocchi grafici
             setTimeout(function() {
-                map.invalidateSize();
-            }, 300);
+                map.invalidateSize(true);
+            }, 200);
 
-            // Collega l'evento allo slider
             document.getElementById('timeline').addEventListener('input', function() {
                 var val = parseInt(this.value);
                 document.getElementById('anno-display').innerText = Math.abs(val) + " a.C.";
                 aggiornaElementi(val);
             });
 
-            // Caricamento iniziale
             aggiornaElementi(-1300);
-        };
+        }
+
+        window.addEventListener('DOMContentLoaded', initMap);
 
         function mostraDettagli(ev) {
             document.getElementById('info-titolo').innerText = ev.nome;
@@ -133,15 +119,11 @@
 
         function filtra(categoria) {
             categoriaAttiva = categoria;
-            
-            // Aggiorna l'aspetto dei pulsanti filtro
             document.querySelectorAll('.btn-filtro').forEach(btn => btn.classList.remove('active'));
             if(categoria === 'tutto') document.getElementById('btn-tutto').classList.add('active');
             if(categoria === 'citta') document.getElementById('btn-citta').classList.add('active');
             if(categoria === 'guerra') document.getElementById('btn-guerra').classList.add('active');
-
-            var annoCorrente = parseInt(document.getElementById('timeline').value);
-            aggiornaElementi(annoCorrente);
+            aggiornaElementi(parseInt(document.getElementById('timeline').value));
         }
 
         function aggiornaElementi(annoSelezionato) {
@@ -149,7 +131,6 @@
             markerAttivi = [];
 
             eventiStorici.forEach(ev => {
-                // Mostra il punto se l'anno è vicino E se corrisponde al filtro selezionato
                 var annoValido = Math.abs(annoSelezionato - ev.anno) <= 200;
                 var categoriaValida = (categoriaAttiva === 'tutto' || categoriaAttiva === ev.tipo);
 
