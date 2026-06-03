@@ -26,13 +26,11 @@
             font-size: 24px;
             text-align: center;
             line-height: 1;
-            filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.8)); /* Ombra per farle risaltare sul satellite scuro */
+            filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.8));
             transition: transform 0.2s ease;
             cursor: pointer;
         }
-        .emoji-marker:active {
-            transform: scale(1.3); /* Effetto rimbalzo al tocco sullo schermo del telefono */
-        }
+        .emoji-marker:active { transform: scale(1.3); }
 
         /* Menu dei Filtri Superiore */
         #filtri-container {
@@ -54,117 +52,15 @@
         #pannello-info h2 { color: #d4af37; margin: 0 0 5px 0; font-size: 18px; }
         #pannello-info p { margin: 0; font-size: 14px; color: #ccc; }
         
-        /* Linea del Tempo Inferiore (3000 a.C. - 2026 d.C.) */
+        /* 🎨 NUOVA LINEA DEL TEMPO DESIGN PREMIUM */
         #timeline-container {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000;
-            background: rgba(10, 10, 10, 0.95); padding: 15px; border-radius: 12px;
-            width: 85%; max-width: 450px; text-align: center; border: 1px solid #d4af37; box-shadow: 0 5px 15px rgba(0,0,0,0.6);
+            background: rgba(15, 15, 15, 0.85); padding: 16px 22px; border-radius: 16px;
+            width: 85%; max-width: 440px; text-align: center; border: 1px solid rgba(212, 175, 55, 0.35);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8); 
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); /* Effetto vetro sfocato background */
         }
-        #timeline { width: 100%; accent-color: #d4af37; margin-top: 8px; }
-        #anno-display { font-size: 20px; font-weight: bold; color: #d4af37; }
-    </style>
-</head>
-<body>
-
-    <div id="map"></div>
-
-    <div id="filtri-container">
-        <button class="btn-filtro active" id="btn-tutto" onclick="filtra('tutto')">Tutto</button>
-        <button class="btn-filtro" id="btn-citta" onclick="filtra('citta')">🏛️ Città</button>
-        <button class="btn-filtro" id="btn-guerra" onclick="filtra('guerra')">⚔️ Guerre</button>
-        <button class="btn-filtro" id="btn-natura" onclick="filtra('natura')">🌋 Natura</button>
-    </div>
-
-    <div id="pannello-info">
-        <h2 id="info-titolo">Titolo</h2>
-        <p id="info-testo">Dettagli...</p>
-    </div>
-
-    <div id="timeline-container">
-        <div>EPOCA: <span id="anno-display">1300 a.C.</span></div>
-        <input type="range" id="timeline" min="-3000" max="2026" value="-1300" step="25">
-    </div>
-
-    <script>
-        var map;
-        var markerAttivi = [];
-        var categoriaAttiva = 'tutto';
-        var eventiStorici = [];
-
-        function initMap() {
-            // Uniamo i database esterni
-            eventiStorici = [].concat(listaCitta, listaGuerre, listaDisastri);
-
-            // Inizializzazione mappa globale
-            map = L.map('map', { zoomControl: false, fadeAnimation: false }).setView([35, 25], 3);
-            
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Esri'
-            }).addTo(map);
-
-            setTimeout(function() { map.invalidateSize(true); }, 200);
-
-            // Slider temporale
-            document.getElementById('timeline').addEventListener('input', function() {
-                var val = parseInt(this.value);
-                if (val < 0) {
-                    document.getElementById('anno-display').innerText = Math.abs(val) + " a.C.";
-                } else {
-                    document.getElementById('anno-display').innerText = val + " d.C.";
-                }
-                aggiornaElementi(val);
-            });
-
-            aggiornaElementi(-1300);
-        }
-
-        window.addEventListener('DOMContentLoaded', initMap);
-
-        function mostraDettagli(ev) {
-            document.getElementById('info-titolo').innerText = ev.nome;
-            document.getElementById('info-testo').innerText = ev.testo;
-            document.getElementById('pannello-info').style.display = 'block';
-        }
-
-        function filtra(categoria) {
-            categoriaAttiva = categoria;
-            document.querySelectorAll('.btn-filtro').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('btn-' + categoria).classList.add('active');
-            aggiornaElementi(parseInt(document.getElementById('timeline').value));
-        }
-
-        function aggiornaElementi(annoSelezionato) {
-            // Rimuoviamo i vecchi marker
-            markerAttivi.forEach(m => map.removeLayer(m));
-            markerAttivi = [];
-
-            eventiStorici.forEach(ev => {
-                var annoValido = Math.abs(annoSelezionato - ev.anno) <= 150;
-                var categoriaValida = (categoriaAttiva === 'tutto' || categoriaAttiva === ev.tipo);
-
-                if (annoValido && categoriaValida) {
-                    
-                    // 🧠 SELEZIONE AUTOMATICA DELL'EMOJI IN BASE AL TIPO
-                    var emojiScelta = '🏛️'; // Default: città
-                    if (ev.tipo === 'guerra') emojiScelta = '⚔️';
-                    if (ev.tipo === 'natura') emojiScelta = '🌋';
-
-                    // Creiamo l'icona con l'emoji al posto del cerchio di prima
-                    var iconaEmoji = L.divIcon({
-                        html: '<div class="emoji-marker">' + emojiScelta + '</div>',
-                        className: 'leaflet-data-marker', // Resetta gli stili bianchi di default delle icone standard
-                        iconSize: [30, 30],
-                        iconAnchor: [15, 15] // Centra perfettamente l'emoji sulle coordinate geografiche
-                    });
-
-                    // Creiamo il marker definitivo sulla mappa
-                    var marker = L.marker(ev.coordinate, { icon: iconaEmoji }).addTo(map);
-
-                    marker.on('click', function() { mostraDettagli(ev); });
-                    markerAttivi.push(marker);
-                }
-            });
-        }
-    </script>
-</body>
-</html>
+        
+        /* Scritta Epoca Chiara e leggibile */
+        #timeline-label {
+            font-size: 1
