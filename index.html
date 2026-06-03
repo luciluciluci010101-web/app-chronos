@@ -11,14 +11,17 @@
     <script src="citta.js"></script>
     <script src="guerre.js"></script>
     <script src="disastri.js"></script>
-
-    <style>
+    <script src="popolazioni.js"></script> <style>
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #050505; font-family: sans-serif; overflow: hidden; }
         
         #map { position: fixed !important; top: 0; bottom: 0; left: 0; right: 0; height: 100vh !important; width: 100vw !important; z-index: 1; }
-        .leaflet-pane { position: absolute !important; left: 0; top: 0; }
-        .leaflet-tile { position: absolute !important; left: 0; top: 0; max-width: none !important; max-height: none !important; user-select: none; }
-        .leaflet-tile-container { position: absolute !important; left: 0; top: 0; pointer-events: none; }
+        
+        /* 🚨 TRUCCO FONDAMENTALE PER LE ANIMAZIONI IN LEAFLET */
+        .leaflet-marker-icon, .leaflet-data-marker { 
+            overflow: visible !important; 
+            background: transparent; 
+            border: none; 
+        }
 
         /* Icone generali sulla mappa */
         .emoji-marker {
@@ -31,16 +34,17 @@
         }
         .emoji-marker:active { transform: scale(1.3); }
 
-        /* ⚔️ ANIMAZIONE DELLE SPADE (Scontro dinamico) */
+        /* ⚔️ ANIMAZIONE DELLE SPADE FORZATA */
         .animazione-spada {
-            animation: scontroSpade 1.2s ease-in-out infinite alternate;
-            display: inline-block;
+            display: inline-block !important; /* Forzato per evitare blocchi */
+            animation: scontroSpade 0.8s ease-in-out infinite alternate !important;
+            transform-origin: center center;
+            will-change: transform;
         }
 
         @keyframes scontroSpade {
-            0% { transform: rotate(-8deg) scale(1); }
-            50% { transform: rotate(12deg) scale(1.15); filter: drop-shadow(0px 0px 6px rgba(212,175,55,0.8)); }
-            100% { transform: rotate(-12deg) scale(1); }
+            0% { transform: rotate(-15deg) scale(1); }
+            100% { transform: rotate(15deg) scale(1.2); filter: drop-shadow(0px 0px 8px rgba(212,175,55,0.9)); }
         }
 
         #filtri-container {
@@ -126,11 +130,7 @@
     </div>
 
     <script>
-        var map;
-        var markerAttivi = [];
-        var categoriaAttiva = 'tutto';
-        var eventiStorici = [];
-        var annoAttualeGlobale = -3000;
+        var map, markerAttivi = [], cerchiAttivi = [], categoriaAttiva = 'tutto', eventiStorici = [], annoAttualeGlobale = -3000;
 
         function initMap() {
             var datiCitta = typeof listaCitta !== 'undefined' ? listaCitta : [];
@@ -201,6 +201,7 @@
             }
 
             aggiornaElementi(val);
+            disegnaPopolazioni(val); // Disegna i territori
         }
 
         function regolaTempo(delta) {
@@ -220,6 +221,45 @@
             aggiornaElementi(annoAttualeGlobale);
         }
 
+        // --- MOTORE POPOLAZIONI ---
+        function disegnaPopolazioni(anno) {
+            cerchiAttivi.forEach(c => map.removeLayer(c));
+            cerchiAttivi = [];
+
+            if (typeof listaPopolazioni === 'undefined') return;
+
+            listaPopolazioni.forEach(pop => {
+                let raggio = 0;
+                let pre = null, post = null;
+
+                for (let i = 0; i < pop.storia.length; i++) {
+                    if (pop.storia[i].anno <= anno) pre = pop.storia[i];
+                    if (pop.storia[i].anno >= anno && post === null) post = pop.storia[i];
+                }
+
+                if (pre && post) {
+                    if (pre.anno === post.anno) raggio = pre.raggio;
+                    else {
+                        let perc = (anno - pre.anno) / (post.anno - pre.anno);
+                        raggio = pre.raggio + (perc * (post.raggio - pre.raggio));
+                    }
+                } else if (pre && !post && anno === pre.anno) raggio = pre.raggio;
+
+                if (raggio > 0) {
+                    let cerchio = L.circle(pop.coordinate, {
+                        color: pop.colore, fillColor: pop.colore, fillOpacity: 0.3, weight: 2, radius: raggio
+                    }).addTo(map);
+                    
+                    cerchio.on('click', () => {
+                        document.getElementById('info-titolo').innerText = pop.nome;
+                        document.getElementById('info-testo').innerText = "Estensione nell'anno: " + (anno < 0 ? Math.abs(anno) + " a.C." : anno + " d.C.");
+                        document.getElementById('pannello-info').style.display = 'block';
+                    });
+                    cerchiAttivi.push(cerchio);
+                }
+            });
+        }
+
         function aggiornaElementi(annoSelezionato) {
             markerAttivi.forEach(m => map.removeLayer(m));
             markerAttivi = [];
@@ -230,18 +270,18 @@
 
                 if (annoValido && categoriaValida) {
                     var emojiScelta = '🏛️';
-                    var classeAggiuntiva = '';
+                    var divClasse = 'emoji-marker'; // Inizializziamo solo con la classe base
 
-                    // ⚔️ Se l'evento è una guerra, applichiamo la classe animata!
                     if (ev.tipo === 'guerra') {
                         emojiScelta = '⚔️';
-                        classeAggiuntiva = ' animazione-spada';
+                        divClasse += ' animazione-spada'; // Aggiungiamo la classe animata
+                    } else if (ev.tipo === 'natura') {
+                        emojiScelta = '🌋';
                     }
-                    if (ev.tipo === 'natura') emojiScelta = '🌋';
 
                     var iconaEmoji = L.divIcon({
-                        html: '<div class="emoji-marker' + classeAggiuntiva + '">' + emojiScelta + '</div>',
-                        className: 'leaflet-data-marker',
+                        html: '<div class="' + divClasse + '">' + emojiScelta + '</div>',
+                        className: 'leaflet-data-marker', // Questo contenitore ora permette overflow visible
                         iconSize: [30, 30],
                         iconAnchor: [15, 15]
                     });
