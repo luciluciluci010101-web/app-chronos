@@ -11,7 +11,7 @@
     <script src="citta.js"></script>
     <script src="guerre.js"></script>
     <script src="disastri.js"></script>
-    <script src="popolazioni.js"></script> <style>
+    <script src="confini.js"></script> <style>
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #050505; font-family: sans-serif; overflow: hidden; }
         
         #map { position: fixed !important; top: 0; bottom: 0; left: 0; right: 0; height: 100vh !important; width: 100vw !important; z-index: 1; }
@@ -130,7 +130,8 @@
     </div>
 
     <script>
-        var map, markerAttivi = [], cerchiAttivi = [], categoriaAttiva = 'tutto', eventiStorici = [], annoAttualeGlobale = -3000;
+        var map, markerAttivi = [], categoriaAttiva = 'tutto', eventiStorici = [], annoAttualeGlobale = -3000;
+        var layerConfiniAttuali = null; // Memorizza i confini per poterli aggiornare
 
         function initMap() {
             var datiCitta = typeof listaCitta !== 'undefined' ? listaCitta : [];
@@ -201,7 +202,7 @@
             }
 
             aggiornaElementi(val);
-            disegnaPopolazioni(val); // Disegna i territori
+            disegnaConfini(val); // Richiama il motore dei confini reali
         }
 
         function regolaTempo(delta) {
@@ -221,43 +222,46 @@
             aggiornaElementi(annoAttualeGlobale);
         }
 
-        // --- MOTORE POPOLAZIONI ---
-        function disegnaPopolazioni(anno) {
-            cerchiAttivi.forEach(c => map.removeLayer(c));
-            cerchiAttivi = [];
+        // --- MOTORE CONFINI REALI (GeoJSON) ---
+        function disegnaConfini(anno) {
+            // 1. Pulisce la mappa dai confini dell'anno precedente
+            if (layerConfiniAttuali) {
+                map.removeLayer(layerConfiniAttuali);
+            }
 
-            if (typeof listaPopolazioni === 'undefined') return;
+            // Se il file non è stato caricato, si ferma qui
+            if (typeof listaConfini === 'undefined') return;
 
-            listaPopolazioni.forEach(pop => {
-                let raggio = 0;
-                let pre = null, post = null;
+            // 2. Trova quali imperi esistono in questo preciso anno
+            var confiniAttivi = listaConfini.filter(c => anno >= c.annoInizio && anno <= c.annoFine);
 
-                for (let i = 0; i < pop.storia.length; i++) {
-                    if (pop.storia[i].anno <= anno) pre = pop.storia[i];
-                    if (pop.storia[i].anno >= anno && post === null) post = pop.storia[i];
-                }
+            // 3. Disegna sulla mappa
+            if (confiniAttivi.length > 0) {
+                var layerGroup = []; 
 
-                if (pre && post) {
-                    if (pre.anno === post.anno) raggio = pre.raggio;
-                    else {
-                        let perc = (anno - pre.anno) / (post.anno - pre.anno);
-                        raggio = pre.raggio + (perc * (post.raggio - pre.raggio));
-                    }
-                } else if (pre && !post && anno === pre.anno) raggio = pre.raggio;
-
-                if (raggio > 0) {
-                    let cerchio = L.circle(pop.coordinate, {
-                        color: pop.colore, fillColor: pop.colore, fillOpacity: 0.3, weight: 2, radius: raggio
-                    }).addTo(map);
-                    
-                    cerchio.on('click', () => {
-                        document.getElementById('info-titolo').innerText = pop.nome;
-                        document.getElementById('info-testo').innerText = "Estensione nell'anno: " + (anno < 0 ? Math.abs(anno) + " a.C." : anno + " d.C.");
-                        document.getElementById('pannello-info').style.display = 'block';
+                confiniAttivi.forEach(c => {
+                    var territorio = L.geoJSON(c.geoData, {
+                        style: {
+                            color: c.colore,       // Colore del bordo
+                            weight: 2,             // Spessore del bordo
+                            fillColor: c.colore,   // Colore interno
+                            fillOpacity: 0.3       // Trasparenza per vedere la mappa
+                        },
+                        onEachFeature: function (feature, layer) {
+                            // Rende l'area cliccabile
+                            layer.on('click', function() {
+                                document.getElementById('info-titolo').innerText = c.nome;
+                                document.getElementById('info-testo').innerText = feature.properties.descrizione;
+                                document.getElementById('pannello-info').style.display = 'block';
+                            });
+                        }
                     });
-                    cerchiAttivi.push(cerchio);
-                }
-            });
+                    layerGroup.push(territorio);
+                });
+
+                // Aggiunge tutti i confini attivi alla mappa in un colpo solo
+                layerConfiniAttuali = L.featureGroup(layerGroup).addTo(map);
+            }
         }
 
         function aggiornaElementi(annoSelezionato) {
@@ -270,18 +274,18 @@
 
                 if (annoValido && categoriaValida) {
                     var emojiScelta = '🏛️';
-                    var divClasse = 'emoji-marker'; // Inizializziamo solo con la classe base
+                    var divClasse = 'emoji-marker'; 
 
                     if (ev.tipo === 'guerra') {
                         emojiScelta = '⚔️';
-                        divClasse += ' animazione-spada'; // Aggiungiamo la classe animata
+                        divClasse += ' animazione-spada'; 
                     } else if (ev.tipo === 'natura') {
                         emojiScelta = '🌋';
                     }
 
                     var iconaEmoji = L.divIcon({
                         html: '<div class="' + divClasse + '">' + emojiScelta + '</div>',
-                        className: 'leaflet-data-marker', // Questo contenitore ora permette overflow visible
+                        className: 'leaflet-data-marker', 
                         iconSize: [30, 30],
                         iconAnchor: [15, 15]
                     });
