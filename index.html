@@ -5,9 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Chronos - Atlante Globale</title>
     
+    <!-- Libreria Mappa Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+    <!-- 🔗 COLLEGAMENTO AI CASSETTI DEI DATI SEPARATI -->
     <script src="citta.js"></script>
     <script src="guerre.js"></script>
     <script src="disastri.js"></script>
@@ -48,19 +50,35 @@
         #pannello-info h2 { color: #d4af37; margin: 0 0 5px 0; font-size: 18px; }
         #pannello-info p { margin: 0; font-size: 14px; color: #ccc; }
         
+        /* LINEA DEL TEMPO CON CONTROLLI DI PRECISIONE */
         #timeline-container {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000;
-            background: rgba(15, 15, 15, 0.85); padding: 16px 22px; border-radius: 16px;
+            background: rgba(15, 15, 15, 0.85); padding: 16px 20px; border-radius: 16px;
             width: 85%; max-width: 440px; text-align: center; border: 1px solid rgba(212, 175, 55, 0.35);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
         }
         
-        #timeline-label { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: #b3b3b3; margin-bottom: 2px; }
-        #anno-display { font-size: 26px; font-weight: bold; color: #d4af37; text-shadow: 0 0 12px rgba(212, 175, 55, 0.4); font-family: 'Georgia', serif; }
+        #timeline-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: #888; margin-bottom: 5px; }
+        
+        /* Plancia dei pulsanti temporali */
+        .plancia-tempo { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 5px; }
+        
+        #anno-display { 
+            font-size: 24px; font-weight: bold; color: #d4af37; min-width: 140px; display: inline-block;
+            text-shadow: 0 0 12px rgba(212, 175, 55, 0.4); font-family: 'Georgia', serif; 
+        }
+        
+        /* Pulsanti di regolazione micro e macro */
+        .btn-regola {
+            background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.4);
+            color: #d4af37; border-radius: 8px; width: 36px; height: 32px; font-size: 12px;
+            font-weight: bold; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-regola:active { background: #d4af37; color: #000; transform: scale(0.95); }
         
         #timeline {
             -webkit-appearance: none; appearance: none; width: 100%; height: 5px; 
-            background: rgba(212, 175, 55, 0.2); border-radius: 5px; outline: none; margin-top: 14px;
+            background: rgba(212, 175, 55, 0.2); border-radius: 5px; outline: none; margin-top: 10px;
         }
         #timeline::-webkit-slider-thumb {
             -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%;
@@ -90,9 +108,17 @@
         <p id="info-testo">Dettagli...</p>
     </div>
 
+    <!-- 📦 NUOVA PLANCIA CON PULSANTI DI NAVIGAZIONE MILLESIMALE -->
     <div id="timeline-container">
-        <div id="timeline-label">EPOCA: <span id="anno-display">1300 a.C.</span></div>
-        <input type="range" id="timeline" min="-3000" max="2026" value="-1300" step="1">
+        <div id="timeline-label">EPOCA</div>
+        <div class="plancia-tempo">
+            <button class="btn-regola" onclick="regolaTempo(-100)">-100</button>
+            <button class="btn-regola" onclick="regolaTempo(-1)">◀</button>
+            <span id="anno-display">3000 a.C.</span>
+            <button class="btn-regola" onclick="regolaTempo(1)">▶</button>
+            <button class="btn-regola" onclick="confermaTempo(100)">+100</button>
+        </div>
+        <input type="range" id="timeline" min="-3000" max="2026" value="-3000" step="1">
     </div>
 
     <script>
@@ -102,15 +128,12 @@
         var eventiStorici = [];
 
         function initMap() {
-            // 🛡️ SCUDO DI SICUREZZA: Se un file non esiste o è vuoto, JavaScript crea una lista vuota invece di bloccarsi!
             var datiCitta = typeof listaCitta !== 'undefined' ? listaCitta : [];
             var datiGuerre = typeof listaGuerre !== 'undefined' ? listaGuerre : [];
             var datiDisastri = typeof listaDisastri !== 'undefined' ? listaDisastri : [];
 
-            // Uniamo solo i dati che sono stati caricati correttamente
             eventiStorici = [].concat(datiCitta, datiGuerre, datiDisastri);
 
-            // Carica la mappa (ora non si bloccherà più!)
             map = L.map('map', { zoomControl: false, fadeAnimation: false }).setView([35, 25], 3);
             
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -119,20 +142,46 @@
 
             setTimeout(function() { map.invalidateSize(true); }, 200);
 
+            // Sincronizza lo spostamento manuale dello slider
             document.getElementById('timeline').addEventListener('input', function() {
-                var val = parseInt(this.value);
-                if (val < 0) {
-                    document.getElementById('anno-display').innerText = Math.abs(val) + " a.C.";
-                } else {
-                    document.getElementById('anno-display').innerText = val + " d.C.";
-                }
-                aggiornaElementi(val);
+                impostaAnno(parseInt(this.value));
             });
 
-            aggiornaElementi(-1300);
+            // Avviamo l'applicazione direttamente dal 3000 a.C.
+            impostaAnno(-3000);
         }
 
         window.addEventListener('DOMContentLoaded', initMap);
+
+        // 🧠 FUNZIONE CENTRALE PER GESTIRE L'ANNO (Unifica slider e pulsanti)
+        function impostaAnno(val) {
+            if (val < -3000) val = -3000;
+            if (val > 2026) val = 2026;
+
+            // Sincronizza graficamente la posizione della levetta
+            document.getElementById('timeline').value = val;
+
+            // Aggiorna il testo dell'anno a schermo
+            if (val < 0) {
+                document.getElementById('anno-display').innerText = Math.abs(val) + " a.C.";
+            } else {
+                document.getElementById('anno-display').innerText = val + " d.C.";
+            }
+
+            // Disegna i punti storici sulla mappa
+            aggiornaElementi(val);
+        }
+
+        // Funzione attivata dai pulsanti d'oro per fare +1, -1, +100 o -100
+        function regolaTempo(delta) {
+            var annoCorrente = parseInt(document.getElementById('timeline').value);
+            impostaAnno(annoCorrente + delta);
+        }
+        
+        // Correzione per il pulsante +100
+        function confermaTempo(delta) {
+            regolaTempo(delta);
+        }
 
         function mostraDettagli(ev) {
             document.getElementById('info-titolo').innerText = ev.nome;
@@ -156,7 +205,6 @@
                 var categoriaValida = (categoriaAttiva === 'tutto' || categoriaAttiva === ev.tipo);
 
                 if (annoValido && categoriaValida) {
-                    
                     var emojiScelta = '🏛️';
                     if (ev.tipo === 'guerra') emojiScelta = '⚔️';
                     if (ev.tipo === 'natura') emojiScelta = '🌋';
@@ -169,7 +217,6 @@
                     });
 
                     var marker = L.marker(ev.coordinate, { icon: iconaEmoji }).addTo(map);
-
                     marker.on('click', function() { mostraDettagli(ev); });
                     markerAttivi.push(marker);
                 }
